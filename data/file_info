@@ -1,0 +1,3 @@
+moisture.csv: csv file containing soil moisture measurements. Contains missing values. Truncated to have common starting and ending times 
+mintemp.csv: csv file containing minimum daily temperature measurements. Contains missing values.  
+maxtemp.csv: csv file containing maximum daily temperature measurements. Contains missing values.
