@@ -81,52 +81,31 @@ dimnames(fullseries)[[1]]
 group = c(1,1,1,2,2,2,3,3,3,4,4,4) #group series according to group membership 
 N <- 10000 # number of bootstrap resamples 
 set.seed(30) 
-res <-obtain_resamples(argvals, fullseries, N, group, group_names=c("HSR","S","C","H")) # obtain resample curves 
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, c(1,1,1,1)) #obtain pvalue 
+res <-obtain_resamples(argvals, fullseries, N, group, group_labels=c("HSR","S","C","H")) # obtain resample curves 
+pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, include_group=c(1,2,3,4)) #obtain pvalue 
 pval$pvalue #pvalue = 0.0854 - moderate evidence
 
 ### Test for pairwise difference 
-# HSR - S
-treatment<-c(1,1,0,0)
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, treatment)
-pval$pvalue #0.3621
-tukey <- tukey_correction(res$resamples_mean, res$sample_mean, treatment)
-tukey$pvalue #0.7637
+# C - H
+include_group<-c(1,2) # which groups to include in test 
+pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, include_group) # un-corrected pvalue 
+print(c(pval$group_labels, pval$pvalue)) #0.3621
+tukey <- tukey_correction(res$resamples_mean, res$sample_mean, include_group) # tukey corrected pvalue 
+print(c(tukey$group_labels, tukey$pvalue)) #0.7637
 
-# HSR - C
-treatment<-c(1,0,1,0)
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, treatment)
-pval$pvalue #0.2214
-tukey <- tukey_correction(res$resamples_mean, res$sample_mean, treatment)
-tukey$pvalue #0.7293
+# obtain tukey pvals for all group pairs 
+pairs<-combn(c(1,2,3,4), 2) # obtain indices for all group pairing 
+pairwise_pvals<-matrix(NA, nrow=dim(pairs)[2], ncol=3) # empty matrix to store pvalues 
 
-# HSR - H 
-treatment<-c(1,0,0,1)
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, treatment)
-pval$pvalue #0.2194
-tukey <- tukey_correction(res$resamples_mean, res$sample_mean, treatment)
-tukey$pvalue #0.3824
+for (i in 1:nrow(pairwise_pvals)){
+  include_group<-c(pairs[,i]) # indices for pairing
+  tukey <- tukey_correction(res$resamples_mean, res$sample_mean, include_group) # obtain tukey correction
+  pairwise_pvals[i,] <- c(tukey$group_labels,tukey$pvalue) # save group name & pvalue
+}
+pairwise_pvals<-data.frame(pairwise_pvals)
+names(pairwise_pvals)<-c("group 1", "group 2", "p-values")
+pairwise_pvals
 
-# S - C
-treatment<-c(0,1,1,0)
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, treatment)
-pval$pvalue #0.0055
-tukey <- tukey_correction(res$resamples_mean, res$sample_mean, treatment)
-tukey$pvalue #0.2518
-
-# S - H
-treatment<-c(0,1,0,1)
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, treatment)
-pval$pvalue #0.0336
-tukey <- tukey_correction(res$resamples_mean, res$sample_mean, treatment)
-tukey$pvalue #0.074
-
-# C - H 
-treatment<-c(0,0,1,1)
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, treatment)
-pval$pvalue #0.4323
-tukey <- tukey_correction(res$resamples_mean, res$sample_mean, treatment)
-tukey$pvalue #0.8196
 
 ### Test for interaction b/w heating and snowremoval
 con <- c(1, -1, 1, -1) #contrast: HSR - S + C -H
@@ -135,8 +114,6 @@ pval$pvalue #0.9327
 
 # visualization 
 # obtain dataframe of difference curves, sample difference curve, and time
-#dat<-vis_dataframe(argvals = as.Date(argvals, origin="2011-01-01 00:00:00"), resamples_mean = res$resamples_mean, sample_mean = res$sample_mean, contrast = con)
-#dat<-vis_dataframe(argvals = argvals, resamples_mean = res$resamples_mean, sample_mean = res$sample_mean, contrast = con)
 dat<-vis_dataframe(argvals = argvals, resamples_mean = res$resamples_mean, sample_mean = res$sample_mean, contrast = con)
 
 # convert to long data format for ggplot 
@@ -155,8 +132,9 @@ int_plot<-ggplot()+geom_line(data=datlong, aes(x=as.Date(argvals, origin="2011-0
 group = c(1,1,1,2,2,2,2,2,2,1,1,1) #group 1 = HSR, H; group 2 = S,C 
 N <- 10000 # number of bootstrap resamples 
 set.seed(30) 
-res <-obtain_resamples(argvals, fullseries, N, group, group_names=c("H","NH"))
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, c(1,1)) #obtain pvalue 
+res <-obtain_resamples(argvals, fullseries, N, group, group_labels=c("H","NH"))
+
+pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, include_group = c(1,2)) #obtain pvalue 
 pval$pvalue # 0.2962 
 
 # visualization 
@@ -178,8 +156,8 @@ main_plot1<-ggplot()+geom_line(data=datlong, aes(x=as.Date(argvals, origin="2011
 group = c(1,1,1,1,1,1,2,2,2,2,2,2) #group 1 = HSR, S; group 2 = H,C
 N <- 10000 # number of bootstrap resamples 
 set.seed(30) 
-res <-obtain_resamples(argvals, fullseries, N, group, group_names=c("S","NS"))
-pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, c(1,1)) #obtain pvalue 
+res <-obtain_resamples(argvals, fullseries, N, group, group_labels=c("S","NS"))
+pval <-obtain_pvalue(res$resamples_mean, res$sample_mean, include_group=c(1,2)) #obtain pvalue 
 pval$pvalue # 0.0142
 
 # visualization 
@@ -207,7 +185,7 @@ argvalsindex<-list(seq(from=1, to=5), seq(from=5, to =10), seq(from=10, to=15), 
                    seq(from=40, to=45), seq(from=45, to =50), seq(from=50, to=55), seq(from=55, to=60),
                    seq(from=60, to=65), seq(from=65, to =70), seq(from=70, to=75), seq(from=75, to=80),
                    seq(from=80, to=85), seq(from=85, to =80), seq(from=90, to=95), seq(from=95, to=100))
-wpval<-westfall_young_pvalue(argvals=argvals, resamples_mean=res$resamples_mean, sample_mean=res$sample_mean, group=group, split=argvalsindex)
+wpval<-westfall_young_pvalue(argvals=argvals, resamples_mean=res$resamples_mean, sample_mean=res$sample_mean, include_group=c(1,2), split=argvalsindex)
 wpval$raw_pvalue
 wpval$corr_pvalue
 

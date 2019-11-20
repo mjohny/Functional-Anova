@@ -1,24 +1,24 @@
 #function to seperate and order full series by group
-group_data<-function(fulldata, group, group_names){
+group_data<-function(fulldata, group, group_labels){
   grouped_data<-NULL
   for (i in unique(group)){
     grouped_data[[i]]<-fulldata[which(group==i),]
   }
   result<-grouped_data
-  if (missing(group_names)){
+  if (missing(group_labels)){
   names(result)<-paste("Group",sort(unique(group)), sep="")}
-  else {names(result)<-group_names}
+  else {names(result)<-group_labels}
   return(result)
 }
 
 # function to output resample means
-obtain_resamples<-function(argvals, fulldata, N, group, group_names){
+obtain_resamples<-function(argvals, fulldata, N, group, group_labels){
   # seperate full series by group
-  if (missing(group_names)){
+  if (missing(group_labels)){
     series<-group_data(fulldata, group)
   }
   else{
-    series<-group_data(fulldata, group, group_names)
+    series<-group_data(fulldata, group, group_labels)
   }
   
   sample_mean <-matrix(NA, nrow = length(argvals), ncol=length(unique(group)))
@@ -50,10 +50,10 @@ obtain_resamples<-function(argvals, fulldata, N, group, group_names){
   return(result)
 }
 
-obtain_pvalue<-function(resamples_mean, sample_mean, group){
+obtain_pvalue<-function(resamples_mean, sample_mean, include_group){
   N<-dim(resamples_mean)[1]
   d<-rep(NA, N)
-  index<-which(group>0)
+  index<-include_group
   for (i in 1:N){
     curves<-t(resamples_mean[i,,index])
     dists<-metric.lp(curves)
@@ -68,9 +68,9 @@ obtain_pvalue<-function(resamples_mean, sample_mean, group){
   pvalue<-length(d[d>=stat])/N
 
   # group names
-  group_names<-dimnames(sample_mean)[[2]][index]
+  group_labels<-dimnames(sample_mean)[[2]][index]
   
-  result<-list(group_names=group_names,pvalue=pvalue)
+  result<-list(group_labels=group_labels,pvalue=pvalue)
 
   return(result)
 }
@@ -103,10 +103,10 @@ obtain_pvalue_contrast<-function(resamples_mean, sample_mean, contrast){
 }
 
 # function to obtain tukey p-value 
-tukey_correction<-function(resamples_mean, sample_mean, group){
+tukey_correction<-function(resamples_mean, sample_mean, include_group){
   #obtain resample distances
   N<-dim(resamples_mean)[1]
-  index<-which(group>0)
+  index<-include_group
   #sample_mean_group<-array(NA, dim=c(1,length(argvals),2))
   
   #obtain sample distance
@@ -146,11 +146,11 @@ tukey_correction<-function(resamples_mean, sample_mean, group){
   resamples_tukey<-maxresamples
   dimnames(resamples_tukey)<-list(dimnames(resamples_mean)[[1]],dimnames(resamples_mean)[[2]],c("maxgroup1","maxgroup2"))
   # sample curves 
-  group_names<-dimnames(sample_mean)[[2]][index]
+  group_labels<-dimnames(sample_mean)[[2]][index]
   sample_mean<-sample_mean[,index]
 
    
-  result<-list(group_names=group_names,pvalue=pvalue, resamples_tukey=resamples_tukey, sample_mean=sample_mean)
+  result<-list(group_labels=group_labels,pvalue=pvalue, resamples_tukey=resamples_tukey, sample_mean=sample_mean)
   
   return(result)
   
@@ -199,9 +199,9 @@ vis_dataframe <- function(argvals,resamples_mean,sample_mean,contrast){
   return(result)}
 
 # westfall young correction 
-westfall_young_pvalue<-function(argvals, resamples_mean, sample_mean, group, split){
+westfall_young_pvalue<-function(argvals, resamples_mean, sample_mean, include_group, split){
   N<-dim(resamples_mean)[1] #number of bootstrap resamples 
-  group_index<-unique(group[which(group>0)]) #group indexs involved in test
+  group_index<-include_group #group indices involved in test
   p_raw<-rep(NA, length(split)) #empty vector to store raw pvalue for each split 
   split<-split
   # list of vectors to store distances for each time split 
